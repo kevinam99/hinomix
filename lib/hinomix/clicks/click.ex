@@ -4,6 +4,7 @@ defmodule Hinomix.Clicks.Click do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @sources Application.compile_env!(:hinomix, :sources)
   schema "clicks" do
     field :source, :string
     field :campaign_id, :string
@@ -20,6 +21,7 @@ defmodule Hinomix.Clicks.Click do
   def changeset(click, attrs) do
     click
     |> cast(attrs, [:source, :campaign_id, :revenue, :clicked_at])
+    |> validate_inclusion(:source, @sources)
     |> validate_required([:source, :campaign_id, :revenue, :clicked_at])
     |> validate_number(:revenue, greater_than_or_equal_to: 0)
   end

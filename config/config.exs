@@ -21,6 +21,8 @@ config :hinomix, HinomixWeb.Endpoint,
   ],
   pubsub_server: Hinomix.PubSub
 
+config :hinomix, sources: ["facebook", "twitter", "google"]
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -29,6 +31,7 @@ config :hinomix, HinomixWeb.Endpoint,
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
 config :hinomix, Hinomix.Mailer, adapter: Swoosh.Adapters.Local
+config :tesla, disable_deprecated_builder_warning: true
 
 
 # Configures Elixir's Logger

@@ -10,25 +10,25 @@ defmodule Hinomix.ReportProcessor do
 
   def process_report(report_data) do
     # Check if report already exists by source and campaign
-    case Repo.get_by(Report, 
-      source: report_data.source, 
+    case Repo.get_by(Report,
+      source: report_data.source,
       campaign_id: report_data.campaign_id
     ) do
       nil ->
         # Create new report
         %Report{}
-        |> Report.changeset(Map.put(report_data, :processed_at, DateTime.utc_now()))
+        |> Report.changeset(report_data)
         |> Repo.insert()
-      
+
       existing_report ->
         # Update existing report with new data
         updated_revenue = Decimal.add(
-          existing_report.total_revenue || Decimal.new(0), 
+          existing_report.total_revenue || Decimal.new(0),
           report_data.total_revenue || Decimal.new(0)
         )
-        
+
         updated_clicks = (existing_report.total_clicks || 0) + (report_data.total_clicks || 0)
-        
+
         existing_report
         |> Report.changeset(%{
           total_revenue: updated_revenue,
@@ -42,7 +42,7 @@ defmodule Hinomix.ReportProcessor do
   def compare_with_clicks(report) do
     # Get actual clicks for the same source and campaign
     click_summary = Clicks.get_summary_for_campaign(report.source, report.campaign_id)
-    
+
     %{
       report_id: report.id,
       source: report.source,
@@ -58,17 +58,17 @@ defmodule Hinomix.ReportProcessor do
 
   def detect_discrepancies(threshold_percentage \\ 10) do
     reports = Repo.all(Report)
-    
+
     discrepancies = Enum.map(reports, fn report ->
       comparison = compare_with_clicks(report)
-      
+
       # Calculate discrepancy percentage
       click_discrepancy_pct = if comparison.actual_clicks > 0 do
         abs(comparison.click_discrepancy) / comparison.actual_clicks * 100
       else
         0
       end
-      
+
       revenue_discrepancy_pct = if Decimal.compare(comparison.actual_revenue, Decimal.new(0)) == :gt do
         comparison.revenue_discrepancy
         |> Decimal.abs()
@@ -78,18 +78,18 @@ defmodule Hinomix.ReportProcessor do
       else
         0
       end
-      
+
       if click_discrepancy_pct > threshold_percentage or revenue_discrepancy_pct > threshold_percentage do
         Logger.warning("Discrepancy detected for #{report.source} - #{report.campaign_id}: " <>
           "Clicks: #{comparison.click_discrepancy} (#{Float.round(click_discrepancy_pct, 2)}%), " <>
           "Revenue: #{comparison.revenue_discrepancy} (#{Float.round(revenue_discrepancy_pct, 2)}%)")
-        
+
         Map.put(comparison, :alert, true)
       else
         Map.put(comparison, :alert, false)
       end
     end)
-    
+
     Enum.filter(discrepancies, & &1.alert)
   end
 

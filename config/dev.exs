@@ -25,7 +25,7 @@ config :hinomix, HinomixWeb.Endpoint,
 config :logger, :default_formatter, format: "[$level] $message\n"
 
 # Disable debug logs for cleaner output
-config :logger, level: :info
+config :logger, level: :debug
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
