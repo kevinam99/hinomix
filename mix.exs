@@ -47,7 +47,21 @@ defmodule Hinomix.MixProject do
       {:bandit, "~> 1.5"},
       {:oban, "~> 2.17"},
       {:tesla, "~> 1.8"},
-      {:hackney, "~> 1.20"}
+      {:hackney, "~> 1.20"},
+      {:phoenix_view, "~> 2.0.4"},
+      {:phoenix_live_dashboard, "~> 0.8.4"},
+      {:phoenix_html, "~> 4.1"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix_live_view, "~> 1.0.0-rc.1", override: true},
+      {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
+      {:heroicons,
+       github: "tailwindlabs/heroicons",
+       tag: "v2.1.1",
+       sparse: "optimized",
+       app: false,
+       compile: false,
+       depth: 1},
+       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
     ]
   end
 
@@ -62,7 +76,14 @@ defmodule Hinomix.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
+      "assets.build": ["tailwind hinomix", "esbuild hinomix"],
+      "assets.deploy": [
+        "tailwind hinomix --minify",
+        "esbuild hinomix --minify",
+        "phx.digest"
+      ]
     ]
   end
 end

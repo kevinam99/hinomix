@@ -21,6 +21,31 @@ config :hinomix, HinomixWeb.Endpoint,
   ],
   pubsub_server: Hinomix.PubSub
 
+config :hinomix, HinomixWeb.Endpoint,
+   live_view: [signing_salt: "SECRET_SALT"]
+
+config :esbuild, :version, "0.25.0"
+
+# Configure tailwind (the version is required)
+config :tailwind,
+  version: "4.0.9",
+  hinomix: [
+    args: ~w(
+      --input=css/app.css
+      --output=../priv/static/assets/app.css
+    ),
+    cd: Path.expand("../assets", __DIR__)
+  ]
+
+config :esbuild,
+  hinomix: [
+    args:
+      ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
+  ]
+
+
 config :hinomix, sources: ["facebook", "twitter", "google"]
 
 # Configures the mailer

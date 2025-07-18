@@ -8,35 +8,39 @@ defmodule Hinomix.ReportProcessor do
   alias Hinomix.Clicks
   require Logger
 
+  import Ecto.Query
+
   def process_report(report_data) do
     # Check if report already exists by source and campaign
-    case Repo.get_by(Report,
-      source: report_data.source,
-      campaign_id: report_data.campaign_id
-    ) do
-      nil ->
-        # Create new report
-        %Report{}
-        |> Report.changeset(report_data)
-        |> Repo.insert()
+    source = report_data.source
+    campaign_id = report_data.campaign_id
+    Repo.transact(fn ->
+      existing_report = from(r in Report, where: r.source == ^source and r.campaign_id == ^campaign_id, lock: "FOR UPDATE") |> Repo.one()
+      case existing_report do
+        nil ->
+          # Create new report
+          %Report{}
+          |> Report.changeset(report_data)
+          |> Repo.insert()
 
-      existing_report ->
-        # Update existing report with new data
-        updated_revenue = Decimal.add(
-          existing_report.total_revenue || Decimal.new(0),
-          report_data.total_revenue || Decimal.new(0)
-        )
+        existing_report ->
+          # Update existing report with new data
+          updated_revenue = Decimal.add(
+            existing_report.total_revenue || Decimal.new(0),
+            report_data.total_revenue || Decimal.new(0)
+          )
 
-        updated_clicks = (existing_report.total_clicks || 0) + (report_data.total_clicks || 0)
+          updated_clicks = (existing_report.total_clicks || 0) + (report_data.total_clicks || 0)
 
-        existing_report
-        |> Report.changeset(%{
-          total_revenue: updated_revenue,
-          total_clicks: updated_clicks,
-          processed_at: DateTime.utc_now()
-        })
-        |> Repo.update()
-    end
+          existing_report
+          |> Report.changeset(%{
+            total_revenue: updated_revenue,
+            total_clicks: updated_clicks,
+            processed_at: DateTime.utc_now()
+          })
+          |> Repo.update()
+      end
+    end)
   end
 
   def compare_with_clicks(report) do

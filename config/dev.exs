@@ -19,7 +19,11 @@ config :hinomix, HinomixWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "egyEa5/05rzh5imUNydQJRyx8mKJPvx3aB/rn/rnfK9tSCcIKhlP+QOJIlBK+2Sn"
+  secret_key_base: "egyEa5/05rzh5imUNydQJRyx8mKJPvx3aB/rn/rnfK9tSCcIKhlP+QOJIlBK+2Sn",
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:hinomix, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:hinomix, ~w(--watch)]}
+  ]
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

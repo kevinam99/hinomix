@@ -35,6 +35,7 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
                    total_clicks: clean_total_clicks(report_data["total_clicks"]),
                    report_date: report_data["report_date"]
                  }
+                 |> IO.inspect()
 
                 case ReportProcessor.process_report(cleaned_report_data) do
                   {:ok, report} ->
@@ -96,7 +97,7 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
     |> String.trim()
     |> String.downcase()
     |> String.split("campaign")
-    |> Enum.join("_")
+    |> Enum.join("")
   end
 
 end
