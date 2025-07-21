@@ -4,6 +4,8 @@ defmodule Hinomix.Reports.Report do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @sources Application.compile_env!(:hinomix, :sources)
+  
   schema "reports" do
     field :report_id, :string
     field :source, :string
@@ -27,6 +29,8 @@ defmodule Hinomix.Reports.Report do
     |> validate_required([:report_id, :source, :campaign_id, :total_clicks, :total_revenue, :report_date])
     |> validate_number(:total_clicks, greater_than_or_equal_to: 0)
     |> validate_number(:total_revenue, greater_than_or_equal_to: 0)
+    |> validate_inclusion(:source, @sources)
     |> unique_constraint(:report_id)
+    |> unique_constraint([:source, :campaign_id, :total_clicks, :total_revenue, :report_date])
   end
 end

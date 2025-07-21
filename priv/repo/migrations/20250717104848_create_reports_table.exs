@@ -23,5 +23,6 @@ defmodule Hinomix.Repo.Migrations.CreateReportsTable do
 
     # Create unique constraint on report_id
     create unique_index(:reports, [:report_id])
+    create unique_index(:reports, [:source, :campaign_id, :total_clicks, :total_revenue, :report_date])
   end
 end

@@ -24,29 +24,32 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
 
           case ApiClient.fetch_page(page) do
             {:ok, response} ->
-              processed_reports_for_page = Enum.map(response["data"], fn report_data ->
-                # Data cleaning
-                cleaned_report_data = %{
-                   report_id: report_data["report_id"],
-                   source: convert_to_valid_source(String.trim(report_data["source"])),
-                   campaign_id: clean_campaign_id(report_data["campaign_id"]),
-                   processed_at: DateTime.utc_now(),
-                   total_revenue: clean_revenue(report_data["total_revenue"]),
-                   total_clicks: clean_total_clicks(report_data["total_clicks"]),
-                   report_date: report_data["report_date"]
-                 }
-                 |> IO.inspect()
+              processed_reports_for_page =
+                Enum.map(response["data"], fn report_data ->
+                  # Data cleaning
+                  cleaned_report_data =
+                    %{
+                      report_id: report_data["report_id"],
+                      source: convert_to_valid_source(String.trim(report_data["source"])),
+                      campaign_id: clean_campaign_id(report_data["campaign_id"]),
+                      processed_at: DateTime.utc_now(:second),
+                      total_revenue: clean_revenue(report_data["total_revenue"]),
+                      total_clicks: clean_total_clicks(report_data["total_clicks"]),
+                      report_date: clean_report_date(report_data["report_date"])
+                    }
+                    |> IO.inspect()
 
-                case ReportProcessor.process_report(cleaned_report_data) do
-                  {:ok, report} ->
-                    Logger.info("Processed report #{report.report_id}")
-                    {:ok, report}
+                  case ReportProcessor.process_report(cleaned_report_data) do
+                    {:ok, report} ->
+                      Logger.info("Processed report #{report.report_id}")
+                      {:ok, report}
 
-                  {:error, changeset} ->
-                    Logger.error("Failed to process report: #{inspect(changeset.errors)}")
-                    {:error, changeset}
-                end
-              end)
+                    {:error, changeset} ->
+                      Logger.error("Failed to process report: #{inspect(changeset.errors)}")
+                      {:error, changeset}
+                  end
+                end)
+
               {:ok, processed_reports_for_page}
 
             {:error, reason} ->
@@ -61,20 +64,22 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
         case Task.await(task) do
           {:ok, reports_from_page} ->
             reports_from_page
+
           {:error, _reason} ->
             []
         end
       end)
 
-    successful = Enum.count(all_processed_reports, fn
-      {:ok, _} -> true
-      _ -> false
-    end)
+    successful =
+      Enum.count(all_processed_reports, fn
+        {:ok, _} -> true
+        _ -> false
+      end)
 
     Logger.info("Report ingestion completed. Processed #{successful} reports successfully.")
 
     # Schedule a discrepancy check job after ingestion
-    %{"delay" => 10}
+    %{"delay" => 10, "threshold_percentage" => 300}
     |> Hinomix.Jobs.DiscrepancyCheckJob.new(schedule_in: 10)
     |> Oban.insert()
 
@@ -95,9 +100,15 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
   defp clean_campaign_id(campaign_id) do
     campaign_id
     |> String.trim()
-    |> String.downcase()
-    |> String.split("campaign")
-    |> Enum.join("")
+    |> String.codepoints()
+    |> List.last()
+    |> then(&("campaign_" <> &1))
   end
 
+  defp clean_report_date(date) do
+    [y, m, d] = String.split(date, "-") |> Enum.map(& String.to_integer/1)
+    {:ok, date}= Date.new(y, m, d)
+    date
+
+  end
 end

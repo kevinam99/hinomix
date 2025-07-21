@@ -15,7 +15,7 @@ defmodule Hinomix.ReportProcessor do
     source = report_data.source
     campaign_id = report_data.campaign_id
     Repo.transact(fn ->
-      existing_report = from(r in Report, where: r.source == ^source and r.campaign_id == ^campaign_id, lock: "FOR UPDATE") |> Repo.one()
+      existing_report = from(r in Report, where: r.source == ^source and r.campaign_id == ^campaign_id, lock: "FOR SHARE") |> Repo.one()
       case existing_report do
         nil ->
           # Create new report
@@ -25,7 +25,11 @@ defmodule Hinomix.ReportProcessor do
 
         existing_report ->
           # Update existing report with new data
-          updated_revenue = Decimal.add(
+          comparison_map = Map.drop(existing_report, [:inserted_at, :updated_at, :__struct__, :__meta__, :id, :report_id])
+          report_comparison = Map.drop(report_data, [:report_id])
+          IO.inspect({comparison_map, report_comparison})
+          if comparison_map != report_comparison do
+            updated_revenue = Decimal.add(
             existing_report.total_revenue || Decimal.new(0),
             report_data.total_revenue || Decimal.new(0)
           )
@@ -36,9 +40,10 @@ defmodule Hinomix.ReportProcessor do
           |> Report.changeset(%{
             total_revenue: updated_revenue,
             total_clicks: updated_clicks,
-            processed_at: DateTime.utc_now()
+            processed_at: DateTime.utc_now(:second)
           })
           |> Repo.update()
+          end
       end
     end)
   end
