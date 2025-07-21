@@ -79,7 +79,7 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
     Logger.info("Report ingestion completed. Processed #{successful} reports successfully.")
 
     # Schedule a discrepancy check job after ingestion
-    %{"delay" => 10, "threshold_percentage" => 300}
+    %{"delay" => 10, "threshold_percentage" => 10}
     |> Hinomix.Jobs.DiscrepancyCheckJob.new(schedule_in: 10)
     |> Oban.insert()
 
@@ -90,6 +90,7 @@ defmodule Hinomix.Jobs.ReportIngestionJob do
   defp convert_to_valid_source(source) when source in ["twitter", "twiiter"], do: "twitter"
   defp convert_to_valid_source(source) when source in ["google", "Google"], do: "google"
 
+  defp clean_revenue(nil), do: 0
   defp clean_revenue("$" <> revenue), do: revenue
   defp clean_revenue(revenue) when is_binary(revenue), do: String.replace(revenue, ",", "")
 
